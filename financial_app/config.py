@@ -19,21 +19,33 @@ ALL_INDUSTRIES_VALUE = "Все"
 FONT_FAMILY = "Bahnschrift"
 ERROR_TITLE = "Ошибка!"
 
-DARK_BG = "#202020"
-DARK_PANEL = "#252525"
-DARK_CARD = "#2B2B2B"
-DARK_FIELD = "#343638"
-DARK_BORDER = "#565B5E"
-TEXT_COLOR = "#FFFFFF"
-MUTED_TEXT_COLOR = "#A7A7A7"
-BLUE = "#1F6AA5"
-BLUE_HOVER = "#2A7AB8"
-DANGER = "#FF3333"
-SUCCESS = "#30C060"
-WARNING = "#F4B942"
+# =========================
+# РАЗМЕРЫ ОКНА
+# =========================
+WINDOW_WIDTH = 1400
+WINDOW_HEIGHT = 680
+WINDOW_MIN_WIDTH = 1180
+WINDOW_MIN_HEIGHT = 580
+SEARCH_PANEL_WIDTH = 280
+SEARCH_CONTROL_WIDTH = 235
 
-SEARCH_PANEL_WIDTH = 260
-SEARCH_CONTROL_WIDTH = 220
+# =========================
+# ЦВЕТОВАЯ ПАЛИТРА
+# =========================
+CHARCOAL_BLUE = "#264653"
+VERDIGRIS = "#2a9d8f"
+TUSCAN_SUN = "#e9c46a"
+SANDY_BROWN = "#f4a261"
+BURNT_PEACH = "#e76f51"
+
+THEME_LIGHT = "light"
+THEME_DARK = "dark"
+DEFAULT_THEME = THEME_DARK
+
+THEME_DISPLAY_NAMES = {
+    THEME_LIGHT: "Светлая",
+    THEME_DARK: "Темная",
+}
 
 PREDICTION_LABELS = [
     "Reg", "Kredit", "Teh", "Market", "Staff", "Psich",

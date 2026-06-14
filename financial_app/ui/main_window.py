@@ -4,6 +4,7 @@ import pandas as pd
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
+    QApplication,
     QComboBox,
     QFrame,
     QGridLayout,
@@ -24,16 +25,24 @@ from financial_app.config import (
     CATEGORIES,
     DATA_PATH,
     ERROR_TITLE,
+    DEFAULT_THEME,
     FIELD_LABELS,
     FONT_FAMILY,
     MODEL_PATH,
-    MUTED_TEXT_COLOR,
     SCALER_PATH,
     SEARCH_CONTROL_WIDTH,
     SEARCH_PANEL_WIDTH,
+    THEME_DARK,
+    THEME_DISPLAY_NAMES,
+    THEME_LIGHT,
+    WINDOW_HEIGHT,
+    WINDOW_MIN_HEIGHT,
+    WINDOW_MIN_WIDTH,
+    WINDOW_WIDTH,
 )
 from financial_app.repository import CompanyDataRepository
 from financial_app.services import FinancialModelService
+from financial_app.styles import build_stylesheet, set_current_theme
 from financial_app.ui.result_dialog import ResultDialog
 from financial_app.validation import (
     InputValidationError,
@@ -54,10 +63,11 @@ class FinancialAnalysisWindow(QMainWindow):
         self.year_entry: QLineEdit | None = None
         self.industry_combo: QComboBox | None = None
         self.status_label: QLabel | None = None
+        self.theme_combo: QComboBox | None = None
 
         self.setWindowTitle(APP_TITLE)
-        self.resize(1220, 640)
-        self.setMinimumSize(1050, 560)
+        self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
+        self.setMinimumSize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT)
         self._build_ui()
 
     def _build_ui(self) -> None:
@@ -91,12 +101,12 @@ class FinancialAnalysisWindow(QMainWindow):
 
             for row_index in range(fields_count):
                 label = QLabel(f"{label_index + 1}. {FIELD_LABELS[label_index]}")
-                label.setFont(QFont(FONT_FAMILY, 13, QFont.Weight.Bold))
+                label.setFont(QFont(FONT_FAMILY, 15, QFont.Weight.Bold))
 
                 entry = QLineEdit()
                 entry.setPlaceholderText(f"x{label_index + 1}")
                 entry.setFixedWidth(150)
-                entry.setFont(QFont(FONT_FAMILY, 13))
+                entry.setFont(QFont(FONT_FAMILY, 14))
 
                 tab_layout.addWidget(label, row_index, 0)
                 tab_layout.addWidget(entry, row_index, 1)
@@ -110,8 +120,8 @@ class FinancialAnalysisWindow(QMainWindow):
 
     def _build_analyze_button(self, parent_layout: QVBoxLayout) -> None:
         analyze_button = QPushButton("Выполнить анализ")
-        analyze_button.setFixedSize(190, 42)
-        analyze_button.setFont(QFont(FONT_FAMILY, 14, QFont.Weight.Bold))
+        analyze_button.setFixedSize(205, 46)
+        analyze_button.setFont(QFont(FONT_FAMILY, 15, QFont.Weight.Bold))
         analyze_button.clicked.connect(self.predict)
         parent_layout.addWidget(analyze_button, alignment=Qt.AlignmentFlag.AlignHCenter)
 
@@ -125,13 +135,24 @@ class FinancialAnalysisWindow(QMainWindow):
         layout.setSpacing(8)
 
         title = QLabel("Поиск предприятия")
-        title.setFont(QFont(FONT_FAMILY, 16, QFont.Weight.Bold))
+        title.setFont(QFont(FONT_FAMILY, 17, QFont.Weight.Bold))
         layout.addWidget(title)
 
         hint = QLabel("Загрузите данные из базы или заполните показатели вручную.")
+        hint.setObjectName("MutedLabel")
         hint.setWordWrap(True)
-        hint.setStyleSheet(f"color: {MUTED_TEXT_COLOR};")
         layout.addWidget(hint)
+
+        layout.addSpacing(8)
+
+        layout.addWidget(self._create_field_label("Тема:"))
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItem(THEME_DISPLAY_NAMES[THEME_DARK], THEME_DARK)
+        self.theme_combo.addItem(THEME_DISPLAY_NAMES[THEME_LIGHT], THEME_LIGHT)
+        self.theme_combo.setCurrentIndex(0 if DEFAULT_THEME == THEME_DARK else 1)
+        self.theme_combo.setFixedWidth(SEARCH_CONTROL_WIDTH)
+        self.theme_combo.currentIndexChanged.connect(self.change_theme)
+        layout.addWidget(self.theme_combo)
 
         layout.addSpacing(8)
 
@@ -169,8 +190,8 @@ class FinancialAnalysisWindow(QMainWindow):
         layout.addStretch(1)
 
         self.status_label = QLabel("Готово к работе")
+        self.status_label.setObjectName("MutedLabel")
         self.status_label.setWordWrap(True)
-        self.status_label.setStyleSheet(f"color: {MUTED_TEXT_COLOR};")
         layout.addWidget(self.status_label)
 
         parent_layout.addWidget(search_frame)
@@ -178,8 +199,17 @@ class FinancialAnalysisWindow(QMainWindow):
     @staticmethod
     def _create_field_label(text: str) -> QLabel:
         label = QLabel(text)
-        label.setFont(QFont(FONT_FAMILY, 12, QFont.Weight.Bold))
+        label.setFont(QFont(FONT_FAMILY, 13, QFont.Weight.Bold))
         return label
+
+
+    def change_theme(self) -> None:
+        theme_name = self._require_theme_combo().currentData()
+        set_current_theme(theme_name)
+
+        app = QApplication.instance()
+        if app is not None:
+            app.setStyleSheet(build_stylesheet(theme_name))
 
     def predict(self) -> None:
         try:
@@ -291,3 +321,8 @@ class FinancialAnalysisWindow(QMainWindow):
         if self.industry_combo is None:
             raise RuntimeError("Список отраслей не создан")
         return self.industry_combo
+
+    def _require_theme_combo(self) -> QComboBox:
+        if self.theme_combo is None:
+            raise RuntimeError("Список тем не создан")
+        return self.theme_combo
