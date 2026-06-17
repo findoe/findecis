@@ -2,26 +2,25 @@ from __future__ import annotations
 
 from pathlib import Path
 
-# =========================
-# НАСТРОЙКИ ПРИЛОЖЕНИЯ
-# =========================
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 APP_TITLE = "Анализ финансового состояния предприятия"
 
-MODEL_PATH = Path("model_artifacts/best_model.keras")
-SCALER_PATH = Path("model_artifacts/scaler.pkl")
-DATA_PATH = Path("data_new.csv")
+MODEL_PATH = PROJECT_ROOT / "artifacts" / "best_model.keras"
+SCALER_PATH = PROJECT_ROOT / "artifacts" / "scaler.pkl"
+DATA_PATH = PROJECT_ROOT / "data" / "data_processed.csv"
 DATA_DELIMITER = ";"
 
+#Количество входных показателей, которые подаются в модель
 INPUT_COUNT = 35
 RISK_THRESHOLD = 0.5
 ALL_INDUSTRIES_VALUE = "Все"
 
+#Базовые параметры интерфейса
 FONT_FAMILY = "Bahnschrift"
 ERROR_TITLE = "Ошибка!"
 
-# =========================
-# РАЗМЕРЫ ОКНА
-# =========================
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 680
 WINDOW_MIN_WIDTH = 1180
@@ -29,9 +28,6 @@ WINDOW_MIN_HEIGHT = 580
 SEARCH_PANEL_WIDTH = 280
 SEARCH_CONTROL_WIDTH = 235
 
-# =========================
-# ЦВЕТОВАЯ ПАЛИТРА
-# =========================
 CHARCOAL_BLUE = "#264653"
 VERDIGRIS = "#2a9d8f"
 TUSCAN_SUN = "#e9c46a"
@@ -47,11 +43,13 @@ THEME_DISPLAY_NAMES = {
     THEME_DARK: "Темная",
 }
 
+#Краткие названия прогнозируемых показателей
 PREDICTION_LABELS = [
     "Reg", "Kredit", "Teh", "Market", "Staff", "Psich",
     "Ability", "Turn", "Finn", "Z25", "Z35",
 ]
 
+#Полные названия прогнозируемых показателей для окна результатов
 PREDICTION_FULL_LABELS = [
     "Региональная и отраслевая специфика (Reg)",
     "Кредитоспособность (Kredit)",
@@ -66,6 +64,7 @@ PREDICTION_FULL_LABELS = [
     "Интегральный показатель Z35",
 ]
 
+#Группы вкладок и количество полей в каждой вкладке
 CATEGORIES = [
     ("Регион. и отрасл. специфика", 5),
     ("Кредитная история", 4),
@@ -76,6 +75,7 @@ CATEGORIES = [
     ("Рентабельность", 5),
 ]
 
+#Подписи для 35 входных показателей
 FIELD_LABELS = [
     "Уровень конкуренции", "Концентрация рисков", "Доля отрасли", "Ситуация в регионе",
     "Макро-риски", "Кредитная история", "Кредиты", "Залог",
@@ -89,6 +89,7 @@ FIELD_LABELS = [
     "Рентабельность", "Продажи",
 ]
 
+#Возможные названия служебных столбцов в CSV-файле
 INDUSTRY_COLUMN_CANDIDATES = ("Отрасль экономики", "Отрасль", "industry")
 INN_COLUMN_CANDIDATES = ("ИНН", "inn")
 YEAR_COLUMN_CANDIDATES = ("Год", "year")

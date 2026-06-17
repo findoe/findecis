@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from financial_app.config import (
+from src.config import (
     DEFAULT_THEME,
     FONT_FAMILY,
     THEME_DARK,
     THEME_LIGHT,
 )
+
 
 
 @dataclass(frozen=True)
@@ -41,10 +42,6 @@ class ThemeColors:
     progress_track: str
 
 
-# Тема сделана по присланным референсам:
-# - светлая: кремовая база + teal для кнопок и верхних вкладок;
-# - темная: cool dark + единый teal для кнопок, вкладок и кнопки «Случайно»;
-# - «Очистить» в обеих темах: #DA4167.
 THEMES: dict[str, ThemeColors] = {
     THEME_LIGHT: ThemeColors(
         background="#FAF8ED",
@@ -106,6 +103,7 @@ THEMES: dict[str, ThemeColors] = {
     ),
 }
 
+
 _current_theme_name = DEFAULT_THEME
 
 
@@ -114,19 +112,15 @@ def normalize_theme(theme_name: str | None) -> str:
         return theme_name
     return DEFAULT_THEME
 
-
 def set_current_theme(theme_name: str | None) -> None:
     global _current_theme_name
     _current_theme_name = normalize_theme(theme_name)
 
-
 def get_current_theme_name() -> str:
     return _current_theme_name
 
-
 def get_theme(theme_name: str | None = None) -> ThemeColors:
     return THEMES[normalize_theme(theme_name or _current_theme_name)]
-
 
 def build_stylesheet(theme_name: str | None = None) -> str:
     theme = get_theme(theme_name)
@@ -145,7 +139,8 @@ def build_stylesheet(theme_name: str | None = None) -> str:
         }}
 
         QFrame#SearchPanel,
-        QFrame#RiskCard {{
+        QFrame#RiskCard,
+        QFrame#AgentCard {{
             background-color: {theme.panel};
             border: 1px solid {theme.border};
             border-radius: 10px;

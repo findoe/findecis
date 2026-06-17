@@ -7,11 +7,14 @@ import numpy as np
 from keras.models import load_model
 
 
+#Сервис для работы с обученной нейросетевой моделью
 class FinancialModelService:
+    #Загрузка модели Keras и сохраненного StandardScaler
     def __init__(self, model_path: Path, scaler_path: Path) -> None:
         self.model = load_model(model_path)
         self.scaler = joblib.load(scaler_path)
 
+    #Предсказание регрессии и вероятности банкротства
     def predict(self, feature_values: list[float]) -> tuple[np.ndarray, float]:
         input_data = np.array(feature_values).reshape(1, -1)
         input_data_scaled = self.scaler.transform(input_data)

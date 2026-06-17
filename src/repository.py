@@ -6,7 +6,7 @@ from typing import Iterable
 
 import pandas as pd
 
-from financial_app.config import (
+from src.config import (
     ALL_INDUSTRIES_VALUE,
     DATA_DELIMITER,
     INDUSTRY_COLUMN_CANDIDATES,
@@ -16,6 +16,8 @@ from financial_app.config import (
 )
 
 
+
+#Определение нужного столбца по возможным названиям
 def resolve_column(
     dataframe: pd.DataFrame,
     candidates: Iterable[str],
@@ -44,6 +46,7 @@ def resolve_column(
     return dataframe.columns[fallback_index]
 
 
+#Имена ключевых столбцов датасета
 @dataclass(frozen=True)
 class DataColumns:
     industry: str
@@ -51,13 +54,16 @@ class DataColumns:
     year: str
 
 
+#Репозиторий для поиска компаний и чтения признаков из CSV
 class CompanyDataRepository:
+    #Загрузка датасета и подготовка служебных столбцов
     def __init__(self, data_path: Path, delimiter: str = DATA_DELIMITER) -> None:
         self.data = pd.read_csv(data_path, delimiter=delimiter)
         self.columns = self._resolve_columns()
         self._normalize_key_columns()
         self._validate_feature_columns()
 
+    #Поиск столбцов отрасли, ИНН и года
     def _resolve_columns(self) -> DataColumns:
         return DataColumns(
             industry=resolve_column(self.data, INDUSTRY_COLUMN_CANDIDATES, fallback_index=0),
@@ -65,19 +71,23 @@ class CompanyDataRepository:
             year=resolve_column(self.data, YEAR_COLUMN_CANDIDATES, fallback_index=2),
         )
 
+    #Приведение ключевых столбцов к строковому типу
     def _normalize_key_columns(self) -> None:
         for column in (self.columns.industry, self.columns.inn, self.columns.year):
             self.data[column] = self.data[column].astype(str)
 
+    #Список входных признаков модели
     @property
     def feature_columns(self) -> list[str]:
         return [f"x{i}" for i in range(1, INPUT_COUNT + 1)]
 
+    #Проверка наличия всех x1-x35
     def _validate_feature_columns(self) -> None:
         missing_columns = [column for column in self.feature_columns if column not in self.data.columns]
         if missing_columns:
             raise ValueError("В данных отсутствуют столбцы: " + ", ".join(missing_columns))
 
+    #Список отраслей для выпадающего меню
     @property
     def industries(self) -> list[str]:
         values = self.data[self.columns.industry].dropna().unique().tolist()
@@ -87,6 +97,7 @@ class CompanyDataRepository:
             if str(value).strip() and str(value).strip().lower() != "nan"
         )
 
+    #Поиск строки по ИНН и необязательному году
     def find_by_inn_and_year(self, inn: str, year: str = "") -> pd.Series | None:
         filtered = self.data[self.data[self.columns.inn] == inn]
 
@@ -98,6 +109,7 @@ class CompanyDataRepository:
 
         return filtered.iloc[0]
 
+    #Выбор случайной компании по отрасли
     def get_random_by_industry(self, industry: str) -> pd.Series | None:
         filtered = self.data
 
@@ -109,14 +121,18 @@ class CompanyDataRepository:
 
         return filtered.sample(1).iloc[0]
 
+    #Получение ИНН из найденной строки
     def get_inn(self, row: pd.Series) -> str:
         return str(row[self.columns.inn])
 
+    #Получение года из найденной строки
     def get_year(self, row: pd.Series) -> str:
         return str(row[self.columns.year])
 
+    #Получение отрасли из найденной строки
     def get_industry(self, row: pd.Series) -> str:
         return str(row[self.columns.industry])
 
+    #Получение входных признаков x1-x35 из найденной строки
     def get_feature_values(self, row: pd.Series) -> list[float]:
         return [float(row[column]) for column in self.feature_columns]
