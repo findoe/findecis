@@ -41,7 +41,7 @@ DEFAULT_ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"
 
 
 #Фиксированное значение для повторяемого обучения
-RANDOM_STATE = 42
+RANDOM_STATE = 25
 
 #Входные признаки модели
 FEATURE_COLUMNS: List[str] = [f"x{i}" for i in range(1, 36)]

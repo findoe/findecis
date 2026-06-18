@@ -1,0 +1,7 @@
+cd C:\Users\odn\Desktop\findecis
+
+cd /d C:\Users\odn\Desktop\findecis && .venv\Scripts\activate && python ml\model.py
+
+cd /d C:\Users\odn\Desktop\findecis && .venv\Scripts\activate && python ml\model_test.py
+
+cd /d C:\Users\odn\Desktop\findecis && .venv\Scripts\activate && python run.py

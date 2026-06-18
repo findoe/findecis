@@ -6,6 +6,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
+    QButtonGroup,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -14,6 +15,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QRadioButton,
     QTabWidget,
     QVBoxLayout,
     QWidget,
@@ -47,10 +49,22 @@ from src.ui.result_dialog import ResultDialog
 from src.validation import (
     InputValidationError,
     validate_inn,
-    validate_numeric,
     validate_year,
 )
 
+
+NUMERIC_INPUT_MODE = "numeric"
+TEXT_INPUT_MODE = "text"
+
+VALUE_DISPLAY_MAP = {
+    0.0: "Низкая",
+    0.25: "Ниже среднего",
+    0.5: "Умеренная",
+    0.75: "Выше среднего",
+    1.0: "Высокая",
+}
+
+VALUE_OPTIONS = tuple(VALUE_DISPLAY_MAP.keys())
 
 
 #Главное окно приложения
@@ -61,7 +75,11 @@ class FinancialAnalysisWindow(QMainWindow):
         self.repository = CompanyDataRepository(DATA_PATH)
         self.model_service = FinancialModelService(MODEL_PATH, SCALER_PATH)
 
-        self.entries: list[QLineEdit] = []
+        self.entries: list[QComboBox] = []
+        self.input_mode = NUMERIC_INPUT_MODE
+        self.mode_button_groups: list[QButtonGroup] = []
+        self.numeric_mode_buttons: list[QRadioButton] = []
+        self.text_mode_buttons: list[QRadioButton] = []
         self.inn_entry: QLineEdit | None = None
         self.year_entry: QLineEdit | None = None
         self.industry_combo: QComboBox | None = None
@@ -104,17 +122,20 @@ class FinancialAnalysisWindow(QMainWindow):
             tab_layout.setColumnStretch(0, 1)
             tab_layout.setColumnStretch(1, 0)
 
+            self._add_input_mode_controls(tab_layout)
+
             for row_index in range(fields_count):
                 label = QLabel(f"{label_index + 1}. {FIELD_LABELS[label_index]}")
                 label.setFont(QFont(FONT_FAMILY, 15, QFont.Weight.Bold))
 
-                entry = QLineEdit()
-                entry.setPlaceholderText(f"x{label_index + 1}")
+                entry = QComboBox()
                 entry.setFixedWidth(150)
                 entry.setFont(QFont(FONT_FAMILY, 14))
+                self._populate_feature_combo(entry)
+                entry.setCurrentIndex(-1)
 
-                tab_layout.addWidget(label, row_index, 0)
-                tab_layout.addWidget(entry, row_index, 1)
+                tab_layout.addWidget(label, row_index + 3, 0)
+                tab_layout.addWidget(entry, row_index + 3, 1)
 
                 self.entries.append(entry)
                 label_index += 1
@@ -122,6 +143,97 @@ class FinancialAnalysisWindow(QMainWindow):
             tabs.addTab(tab, category)
 
         parent_layout.addWidget(tabs, stretch=1)
+
+    #Переключатель формата значений над выпадающими списками
+    def _add_input_mode_controls(self, tab_layout: QGridLayout) -> None:
+        mode_label = QLabel("Вид:")
+        mode_label.setFont(QFont(FONT_FAMILY, 13, QFont.Weight.Bold))
+        tab_layout.addWidget(mode_label, 0, 1)
+
+        mode_widget = QWidget()
+        mode_layout = QHBoxLayout(mode_widget)
+        mode_layout.setContentsMargins(0, 0, 0, 0)
+        mode_layout.setSpacing(12)
+
+        numeric_button = QRadioButton("0.0")
+        text_button = QRadioButton("Низкое")
+        numeric_button.setFont(QFont(FONT_FAMILY, 13, QFont.Weight.Bold))
+        text_button.setFont(QFont(FONT_FAMILY, 13, QFont.Weight.Bold))
+        numeric_button.setChecked(self.input_mode == NUMERIC_INPUT_MODE)
+        text_button.setChecked(self.input_mode == TEXT_INPUT_MODE)
+
+        button_group = QButtonGroup(self)
+        button_group.addButton(numeric_button)
+        button_group.addButton(text_button)
+
+        numeric_button.toggled.connect(
+            lambda checked: self._change_input_mode(NUMERIC_INPUT_MODE) if checked else None
+        )
+        text_button.toggled.connect(
+            lambda checked: self._change_input_mode(TEXT_INPUT_MODE) if checked else None
+        )
+
+        mode_layout.addWidget(numeric_button)
+        mode_layout.addWidget(text_button)
+        mode_layout.addStretch(1)
+        tab_layout.addWidget(mode_widget, 1, 1)
+
+        expressiveness_label = QLabel("Выраженность:")
+        expressiveness_label.setFont(QFont(FONT_FAMILY, 13, QFont.Weight.Bold))
+        tab_layout.addWidget(expressiveness_label, 2, 1)
+
+        self.mode_button_groups.append(button_group)
+        self.numeric_mode_buttons.append(numeric_button)
+        self.text_mode_buttons.append(text_button)
+
+    #Заполнение списка значениями в текущем формате
+    def _populate_feature_combo(self, combo: QComboBox) -> None:
+        combo.clear()
+
+        for value in VALUE_OPTIONS:
+            if self.input_mode == NUMERIC_INPUT_MODE:
+                combo.addItem(f"{value:.2f}" if value in (0.25, 0.75) else f"{value:.1f}", value)
+            else:
+                combo.addItem(VALUE_DISPLAY_MAP[value], value)
+
+    #Смена формата выбора значений во всех выпадающих списках
+    def _change_input_mode(self, mode: str) -> None:
+        if mode == self.input_mode:
+            return
+
+        selected_values = [entry.currentData() for entry in self.entries]
+        self.input_mode = mode
+
+        for numeric_button in self.numeric_mode_buttons:
+            numeric_button.blockSignals(True)
+            numeric_button.setChecked(mode == NUMERIC_INPUT_MODE)
+            numeric_button.blockSignals(False)
+
+        for text_button in self.text_mode_buttons:
+            text_button.blockSignals(True)
+            text_button.setChecked(mode == TEXT_INPUT_MODE)
+            text_button.blockSignals(False)
+
+        for entry, value in zip(self.entries, selected_values):
+            self._populate_feature_combo(entry)
+            self._set_feature_combo_value(entry, value)
+
+    #Установка значения выпадающего списка по числовому эквиваленту
+    @staticmethod
+    def _set_feature_combo_value(combo: QComboBox, value: float | None) -> None:
+        if value is None:
+            combo.setCurrentIndex(-1)
+            return
+
+        numeric_value = float(value)
+
+        for index in range(combo.count()):
+            option_value = combo.itemData(index)
+            if option_value is not None and abs(float(option_value) - numeric_value) < 0.000001:
+                combo.setCurrentIndex(index)
+                return
+
+        combo.setCurrentIndex(-1)
 
     #Кнопка запуска анализа
     def _build_analyze_button(self, parent_layout: QVBoxLayout) -> None:
@@ -294,7 +406,7 @@ class FinancialAnalysisWindow(QMainWindow):
     #Очистка формы ввода
     def clear_form(self) -> None:
         for entry in self.entries:
-            entry.clear()
+            entry.setCurrentIndex(-1)
 
         self._require_inn_entry().clear()
         self._require_year_entry().clear()
@@ -306,11 +418,11 @@ class FinancialAnalysisWindow(QMainWindow):
         values = []
 
         for index, entry in enumerate(self.entries, start=1):
-            value = entry.text().strip().replace(",", ".")
+            value = entry.currentData()
 
-            if not value or not validate_numeric(value):
+            if value is None:
                 entry.setFocus()
-                raise InputValidationError(f"Заполните поле x{index} корректным числом!")
+                raise InputValidationError(f"Выберите значение x{index}!")
 
             values.append(float(value))
 
@@ -326,7 +438,7 @@ class FinancialAnalysisWindow(QMainWindow):
     #Заполнение полей x1-x35
     def _fill_feature_entries(self, row: pd.Series) -> None:
         for entry, value in zip(self.entries, self.repository.get_feature_values(row)):
-            entry.setText(str(value))
+            self._set_feature_combo_value(entry, value)
 
     #Получение ИНН из поля поиска
     def _get_inn_value(self) -> str:
