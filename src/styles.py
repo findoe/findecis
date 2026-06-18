@@ -209,6 +209,35 @@ def build_stylesheet(theme_name: str | None = None) -> str:
             color: {theme.button_text};
         }}
 
+        QWidget#ModeControlsPanel {{
+            background-color: transparent;
+        }}
+
+        QFrame#ModeSwitch {{
+            background-color: {theme.primary};
+            border: none;
+            border-radius: 7px;
+        }}
+
+        QFrame#ModeSwitch QPushButton#SegmentButton {{
+            background-color: transparent;
+            color: {theme.button_text};
+            border: none;
+            border-radius: 5px;
+            padding: 0;
+            min-height: 0;
+        }}
+
+        QFrame#ModeSwitch QPushButton#SegmentButton:hover {{
+            background-color: {theme.primary_hover};
+            color: {theme.button_text};
+        }}
+
+        QFrame#ModeSwitch QPushButton#SegmentButton:checked {{
+            background-color: {theme.primary_pressed};
+            color: {theme.button_text};
+        }}
+
         QPushButton#SecondaryButton {{
             background-color: {theme.secondary_button_bg};
             color: {theme.secondary_button_text};

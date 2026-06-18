@@ -15,7 +15,6 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
-    QRadioButton,
     QTabWidget,
     QVBoxLayout,
     QWidget,
@@ -78,8 +77,8 @@ class FinancialAnalysisWindow(QMainWindow):
         self.entries: list[QComboBox] = []
         self.input_mode = NUMERIC_INPUT_MODE
         self.mode_button_groups: list[QButtonGroup] = []
-        self.numeric_mode_buttons: list[QRadioButton] = []
-        self.text_mode_buttons: list[QRadioButton] = []
+        self.numeric_mode_buttons: list[QPushButton] = []
+        self.text_mode_buttons: list[QPushButton] = []
         self.inn_entry: QLineEdit | None = None
         self.year_entry: QLineEdit | None = None
         self.industry_combo: QComboBox | None = None
@@ -116,15 +115,34 @@ class FinancialAnalysisWindow(QMainWindow):
         for category, fields_count in CATEGORIES:
             tab = QWidget()
             tab_layout = QGridLayout(tab)
-            tab_layout.setContentsMargins(16, 14, 16, 14)
+            tab_layout.setContentsMargins(16, 10, 16, 14)
             tab_layout.setHorizontalSpacing(14)
-            tab_layout.setVerticalSpacing(9)
+            tab_layout.setVerticalSpacing(10)
             tab_layout.setColumnStretch(0, 1)
             tab_layout.setColumnStretch(1, 0)
+            tab_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-            self._add_input_mode_controls(tab_layout)
+            tab_layout.addWidget(
+                self._create_input_mode_header(),
+                0,
+                1,
+                alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop,
+            )
+
+            block_label = QLabel("Блок:")
+            block_label.setFont(QFont(FONT_FAMILY, 13, QFont.Weight.Bold))
+            tab_layout.addWidget(block_label, 1, 0, alignment=Qt.AlignmentFlag.AlignLeft)
+
+            expressiveness_label = QLabel("Выраженность:")
+            expressiveness_label.setFont(QFont(FONT_FAMILY, 13, QFont.Weight.Bold))
+            tab_layout.addWidget(expressiveness_label, 1, 1, alignment=Qt.AlignmentFlag.AlignLeft)
+
+            field_row_height = max(58, min(88, 520 // max(fields_count, 1)))
 
             for row_index in range(fields_count):
+                grid_row = row_index + 2
+                tab_layout.setRowMinimumHeight(grid_row, field_row_height)
+
                 label = QLabel(f"{label_index + 1}. {FIELD_LABELS[label_index]}")
                 label.setFont(QFont(FONT_FAMILY, 15, QFont.Weight.Bold))
 
@@ -134,8 +152,8 @@ class FinancialAnalysisWindow(QMainWindow):
                 self._populate_feature_combo(entry)
                 entry.setCurrentIndex(-1)
 
-                tab_layout.addWidget(label, row_index + 3, 0)
-                tab_layout.addWidget(entry, row_index + 3, 1)
+                tab_layout.addWidget(label, grid_row, 0)
+                tab_layout.addWidget(entry, grid_row, 1)
 
                 self.entries.append(entry)
                 label_index += 1
@@ -144,25 +162,42 @@ class FinancialAnalysisWindow(QMainWindow):
 
         parent_layout.addWidget(tabs, stretch=1)
 
-    #Переключатель формата значений над выпадающими списками
-    def _add_input_mode_controls(self, tab_layout: QGridLayout) -> None:
+    #Компактный переключатель формата значений внутри сетки
+    def _create_input_mode_header(self) -> QWidget:
+        header = QWidget()
+        header.setObjectName("ModeHeader")
+        header.setFixedWidth(150)
+
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(6)
+
         mode_label = QLabel("Вид:")
         mode_label.setFont(QFont(FONT_FAMILY, 13, QFont.Weight.Bold))
-        tab_layout.addWidget(mode_label, 0, 1)
+        header_layout.addWidget(mode_label)
 
-        mode_widget = QWidget()
-        mode_layout = QHBoxLayout(mode_widget)
-        mode_layout.setContentsMargins(0, 0, 0, 0)
-        mode_layout.setSpacing(12)
+        mode_switch = QFrame()
+        mode_switch.setObjectName("ModeSwitch")
+        mode_switch.setFixedSize(108, 32)
 
-        numeric_button = QRadioButton("0.0")
-        text_button = QRadioButton("Низкое")
-        numeric_button.setFont(QFont(FONT_FAMILY, 13, QFont.Weight.Bold))
-        text_button.setFont(QFont(FONT_FAMILY, 13, QFont.Weight.Bold))
+        mode_layout = QHBoxLayout(mode_switch)
+        mode_layout.setContentsMargins(2, 2, 2, 2)
+        mode_layout.setSpacing(2)
+
+        numeric_button = QPushButton("0.0")
+        text_button = QPushButton("Низкое")
+
+        for button in (numeric_button, text_button):
+            button.setObjectName("SegmentButton")
+            button.setCheckable(True)
+            button.setFixedHeight(28)
+            button.setFont(QFont(FONT_FAMILY, 12, QFont.Weight.Bold))
+
         numeric_button.setChecked(self.input_mode == NUMERIC_INPUT_MODE)
         text_button.setChecked(self.input_mode == TEXT_INPUT_MODE)
 
         button_group = QButtonGroup(self)
+        button_group.setExclusive(True)
         button_group.addButton(numeric_button)
         button_group.addButton(text_button)
 
@@ -175,16 +210,13 @@ class FinancialAnalysisWindow(QMainWindow):
 
         mode_layout.addWidget(numeric_button)
         mode_layout.addWidget(text_button)
-        mode_layout.addStretch(1)
-        tab_layout.addWidget(mode_widget, 1, 1)
-
-        expressiveness_label = QLabel("Выраженность:")
-        expressiveness_label.setFont(QFont(FONT_FAMILY, 13, QFont.Weight.Bold))
-        tab_layout.addWidget(expressiveness_label, 2, 1)
+        header_layout.addWidget(mode_switch)
 
         self.mode_button_groups.append(button_group)
         self.numeric_mode_buttons.append(numeric_button)
         self.text_mode_buttons.append(text_button)
+
+        return header
 
     #Заполнение списка значениями в текущем формате
     def _populate_feature_combo(self, combo: QComboBox) -> None:
