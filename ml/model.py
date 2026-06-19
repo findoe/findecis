@@ -242,12 +242,31 @@ def build_multitask_model(input_dim: int) -> Model:
     x = Dense(32, activation="relu", kernel_regularizer=l2(1e-4), name="dense_32")(x)
     x = BatchNormalization(name="bn_32")(x)
 
+    #Отдельная ветка регрессии: классификационный выход ниже не меняется.
+    #Так регрессия получает больше емкости и меньше конкурирует с классификационной задачей.
+    regression_branch = Dense(
+        64,
+        activation="relu",
+        kernel_regularizer=l2(5e-5),
+        name="regression_dense_64",
+    )(x)
+    regression_branch = BatchNormalization(name="regression_bn_64")(regression_branch)
+    regression_branch = Dropout(0.10, name="regression_dropout_64")(regression_branch)
+
+    regression_branch = Dense(
+        32,
+        activation="relu",
+        kernel_regularizer=l2(5e-5),
+        name="regression_dense_32",
+    )(regression_branch)
+    regression_branch = BatchNormalization(name="regression_bn_32")(regression_branch)
+
     #Регрессионные цели лежат в диапазоне [0; 1], поэтому sigmoid ограничивает выход модели.
     regression_output = Dense(
         len(REGRESSION_COLUMNS),
         activation="sigmoid",
         name="regression_output",
-    )(x)
+    )(regression_branch)
 
     classification_output = Dense(
         1,
@@ -264,15 +283,20 @@ def build_multitask_model(input_dim: int) -> Model:
     model.compile(
         optimizer=Adam(learning_rate=1e-3),
         loss={
-            "regression_output": "mse",
+            #Оптимизируем именно MAE, потому что этот показатель выводится как основная ошибка регрессии.
+            "regression_output": "mae",
             "classification_output": "binary_crossentropy",
         },
         loss_weights={
-            "regression_output": 0.35,
+            #Усиливаем только регрессионную задачу; классификационный вес оставлен как в исходной модели.
+            "regression_output": 0.60,
             "classification_output": 0.65,
         },
         metrics={
-            "regression_output": [tf.keras.metrics.MeanAbsoluteError(name="mae")],
+            "regression_output": [
+                tf.keras.metrics.MeanAbsoluteError(name="mae"),
+                tf.keras.metrics.RootMeanSquaredError(name="rmse"),
+            ],
             "classification_output": [
                 tf.keras.metrics.BinaryAccuracy(name="accuracy"),
                 tf.keras.metrics.AUC(name="roc_auc"),
@@ -432,17 +456,21 @@ def train_model(args: argparse.Namespace) -> None:
 
     model = build_multitask_model(input_dim=len(FEATURE_COLUMNS))
 
-    #Колбэки контролируют раннюю остановку, скорость обучения и сохранение лучшей модели
+    #Колбэки контролируют раннюю остановку, скорость обучения и сохранение лучшей модели.
+    #Теперь лучшая эпоха выбирается по регрессии, иначе веса откатываются к эпохе,
+    #где классификация уже хорошая, а регрессия еще не дообучена.
+    regression_monitor = "val_regression_output_mae"
     callbacks = [
         EarlyStopping(
-            monitor="val_classification_output_roc_auc",
-            mode="max",
+            monitor=regression_monitor,
+            mode="min",
             patience=args.patience,
             restore_best_weights=True,
             verbose=1,
         ),
         ReduceLROnPlateau(
-            monitor="val_loss",
+            monitor=regression_monitor,
+            mode="min",
             factor=0.5,
             patience=max(3, args.patience // 2),
             min_lr=1e-5,
@@ -450,8 +478,8 @@ def train_model(args: argparse.Namespace) -> None:
         ),
         ModelCheckpoint(
             filepath=str(model_dir / "best_model.keras"),
-            monitor="val_classification_output_roc_auc",
-            mode="max",
+            monitor=regression_monitor,
+            mode="min",
             save_best_only=True,
             verbose=1,
         ),
