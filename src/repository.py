@@ -109,6 +109,18 @@ class CompanyDataRepository:
 
         return filtered.iloc[0]
 
+
+    #Получение всей истории предприятия по ИНН
+    def get_company_history(self, inn: str) -> pd.DataFrame:
+        history = self.data[self.data[self.columns.inn] == inn].copy()
+
+        if history.empty:
+            return history
+
+        history["_year_sort"] = pd.to_numeric(history[self.columns.year], errors="coerce")
+        history = history.sort_values(["_year_sort", self.columns.year], kind="stable")
+        return history.drop(columns=["_year_sort"])
+
     #Выбор случайной компании по отрасли
     def get_random_by_industry(self, industry: str) -> pd.Series | None:
         filtered = self.data

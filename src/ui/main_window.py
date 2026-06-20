@@ -43,6 +43,7 @@ from src.config import (
 )
 from src.repository import CompanyDataRepository
 from src.services import FinancialModelService
+from src.report_data import HistoryPoint
 from src.styles import build_stylesheet, set_current_theme
 from src.ui.result_dialog import ResultDialog
 from src.validation import (
@@ -372,6 +373,7 @@ class FinancialAnalysisWindow(QMainWindow):
                 regression_values,
                 probability,
                 context=self._build_analysis_context(),
+                history_points=self._build_history_points(),
                 parent=self,
             )
             dialog.exec()
@@ -379,6 +381,37 @@ class FinancialAnalysisWindow(QMainWindow):
             self._show_error(str(error))
         except Exception as error:
             self._show_error(str(error))
+
+
+    #Формирование исторических точек для PDF-отчета
+    def _build_history_points(self) -> list[HistoryPoint]:
+        inn = self._get_inn_value()
+
+        if not validate_inn(inn):
+            return []
+
+        history = self.repository.get_company_history(inn)
+        if history.empty or len(history) < 2:
+            return []
+
+        feature_rows = [
+            self.repository.get_feature_values(row)
+            for _, row in history.iterrows()
+        ]
+        regression_rows, probabilities = self.model_service.predict_many(feature_rows)
+
+        points: list[HistoryPoint] = []
+        for index, (_, row) in enumerate(history.iterrows()):
+            points.append(
+                HistoryPoint(
+                    year=self.repository.get_year(row),
+                    industry=self.repository.get_industry(row),
+                    probability=float(probabilities[index]),
+                    regression_values=[float(value) for value in regression_rows[index]],
+                )
+            )
+
+        return points
 
     #Подготовка контекста анализа для отчета агента
     def _build_analysis_context(self) -> dict[str, str]:

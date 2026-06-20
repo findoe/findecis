@@ -23,3 +23,15 @@ class FinancialModelService:
         probability = float(classification_output[0][0])
 
         return regression_output[0], probability
+    #Массовое предсказание для истории предприятия по годам
+    def predict_many(self, feature_rows: list[list[float]]) -> tuple[np.ndarray, np.ndarray]:
+        if not feature_rows:
+            return np.array([]), np.array([])
+
+        input_data = np.array(feature_rows)
+        input_data_scaled = self.scaler.transform(input_data)
+
+        regression_output, classification_output = self.model.predict(input_data_scaled, verbose=0)
+        probabilities = classification_output.reshape(-1)
+
+        return regression_output, probabilities

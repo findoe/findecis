@@ -38,11 +38,14 @@ class ResultDialog(QDialog):
         regression_values: np.ndarray,
         probability: float,
         context: dict[str, str] | None = None,
+        history_points: list | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
+        self.regression_values = regression_values
         self.agent_report = build_agent_report(regression_values, probability, context)
         self.context = context or {}
+        self.history_points = history_points or []
 
         self.setWindowTitle("Результаты")
         self.resize(1180, 860)
@@ -88,7 +91,7 @@ class ResultDialog(QDialog):
         buttons_layout = QHBoxLayout()
         buttons_layout.addStretch(1)
 
-        save_button = QPushButton("Сохранить отчет")
+        save_button = QPushButton("Сохранить PDF")
         save_button.setFont(QFont(FONT_FAMILY, 15, QFont.Weight.Bold))
         save_button.setFixedSize(190, 44)
         save_button.clicked.connect(self.save_report)
@@ -211,26 +214,44 @@ class ResultDialog(QDialog):
 
         return table
 
-    #Сохранение текстового отчета в файл
+    #Сохранение PDF-отчета с графиками
     def save_report(self) -> None:
         file_path, _ = QFileDialog.getSaveFileName(
             self,
-            "Сохранить отчет",
-            "otchet_finansovogo_agenta.txt",
-            "Текстовый файл (*.txt)",
+            "Сохранить PDF-отчет",
+            "otchet_finansovogo_agenta.pdf",
+            "PDF-файл (*.pdf)",
         )
 
         if not file_path:
             return
 
         try:
-            with open(file_path, "w", encoding="utf-8") as file:
-                file.write(self.agent_report.report_text)
+            from src.pdf_report import create_pdf_report
+
+            saved_path = create_pdf_report(
+                file_path=file_path,
+                agent_report=self.agent_report,
+                context=self.context,
+                current_regression_values=self.regression_values,
+                history_points=self.history_points,
+            )
+        except ImportError as error:
+            QMessageBox.critical(
+                self,
+                "Ошибка!",
+                f"Не удалось создать PDF-отчет: не установлена библиотека {error.name}. "
+                "Установите зависимости из requirements.txt.",
+            )
+            return
         except OSError as error:
-            QMessageBox.critical(self, "Ошибка!", f"Не удалось сохранить отчет: {error}")
+            QMessageBox.critical(self, "Ошибка!", f"Не удалось сохранить PDF-отчет: {error}")
+            return
+        except Exception as error:
+            QMessageBox.critical(self, "Ошибка!", f"Не удалось создать PDF-отчет: {error}")
             return
 
-        QMessageBox.information(self, "Готово", "Отчет сохранен.")
+        QMessageBox.information(self, "Готово", f"PDF-отчет сохранен:\n{saved_path}")
 
     #Формирование строки с контекстом анализа
     def _context_text(self) -> str:
