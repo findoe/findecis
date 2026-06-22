@@ -151,15 +151,6 @@ def create_pdf_report(
                 )
             )
 
-        story.append(Spacer(1, 0.2 * cm))
-        story.append(
-            Paragraph(
-                "Примечание: рекомендации сформированы эвристическим агентом на основе выходов нейросетевой модели. "
-                "Они не заменяют полноценный финансовый аудит.",
-                small,
-            )
-        )
-
         doc.build(story, onFirstPage=_add_page_number(font_regular), onLaterPages=_add_page_number(font_regular))
 
     return output_path
@@ -386,19 +377,22 @@ def _save_risk_history_chart(points: Sequence[HistoryPoint], output_path: Path) 
     plt.close(fig)
 
 
-#График Finn, Z25 и Z35 по годам
+#График Kredit, Ability, Finn и Z35 по годам
 def _save_stability_history_chart(points: Sequence[HistoryPoint], output_path: Path) -> None:
     years = [str(point.year) for point in points]
-    finn = [point.regression_values[8] for point in points]
-    z25 = [point.regression_values[9] for point in points]
-    z35 = [point.regression_values[10] for point in points]
+    series = [
+        ("Kredit", [point.regression_values[1] for point in points]),
+        ("Ability", [point.regression_values[6] for point in points]),
+        ("Finn", [point.regression_values[8] for point in points]),
+        ("Z35", [point.regression_values[10] for point in points]),
+    ]
 
     fig, ax = plt.subplots(figsize=(8.3, 4.2), dpi=160)
-    ax.plot(years, finn, marker="o", linewidth=2, label="Finn")
-    ax.plot(years, z25, marker="o", linewidth=2, label="Z25")
-    ax.plot(years, z35, marker="o", linewidth=2, label="Z35")
+    for label, values in series:
+        ax.plot(years, values, marker="o", linewidth=2, label=label)
+
     ax.set_ylim(0, 1)
-    ax.set_title("Интегральные показатели и финансовая устойчивость")
+    ax.set_title("Kredit, Ability, Finn и Z35 по годам")
     ax.set_xlabel("Год")
     ax.set_ylabel("Оценка, 0-1")
     ax.grid(True, alpha=0.35)

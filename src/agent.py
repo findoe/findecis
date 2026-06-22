@@ -244,9 +244,5 @@ def _build_report_text(
     for recommendation in recommendations:
         lines.append(f"- {recommendation}")
 
-    lines.extend([
-        "",
-        "Примечание: рекомендации сформированы эвристическим агентом на основе выходов нейросетевой модели. Они не заменяют полноценный финансовый аудит!",
-    ])
 
     return "\n".join(lines)

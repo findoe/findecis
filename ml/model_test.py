@@ -5,6 +5,13 @@ import pandas as pd
 import joblib
 from keras.models import load_model
 
+import sys
+
+if str(Path(__file__).resolve().parents[1]) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from src.risk_probability import BankruptcyRiskEstimator
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MODEL_PATH = PROJECT_ROOT / "artifacts" / "best_model.keras"
@@ -35,9 +42,11 @@ X = row[FEATURES].values
 X_scaled = scaler.transform(X)
 
 #Предсказание регрессионных показателей и вероятности банкротства
-reg, cls = model.predict(X_scaled, verbose=0)
+#Вероятность считается по 11 регрессионным показателям, а не по бинарному выходу модели.
+reg, _cls = model.predict(X_scaled, verbose=0)
 
-prob = float(cls[0][0])
+risk_estimator = BankruptcyRiskEstimator()
+prob = risk_estimator.predict(reg[0])
 
 
 #Вывод общей инфо

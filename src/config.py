@@ -9,6 +9,7 @@ APP_TITLE = "Анализ финансового состояния предпр
 
 MODEL_PATH = PROJECT_ROOT / "artifacts" / "best_model.keras"
 SCALER_PATH = PROJECT_ROOT / "artifacts" / "scaler.pkl"
+RISK_CALIBRATOR_PATH = PROJECT_ROOT / "artifacts" / "risk_calibrator.json"
 DATA_PATH = PROJECT_ROOT / "data" / "data_processed.csv"
 DATA_DELIMITER = ";"
 
@@ -47,6 +48,23 @@ THEME_DISPLAY_NAMES = {
 PREDICTION_LABELS = [
     "Reg", "Kredit", "Teh", "Market", "Staff", "Psich",
     "Ability", "Turn", "Finn", "Z25", "Z35",
+]
+
+
+#Веса резервной эвристики для расчета вероятности банкротства по 11 прогнозным показателям
+#Основной расчет выполняется через risk_calibrator.json; эти веса используются только если файл недоступен.
+BANKRUPTCY_RISK_WEIGHTS = [
+    0.05,  # Reg
+    0.12,  # Kredit
+    0.06,  # Teh
+    0.08,  # Market
+    0.06,  # Staff
+    0.05,  # Psich
+    0.16,  # Ability
+    0.10,  # Turn
+    0.17,  # Finn
+    0.06,  # Z25
+    0.09,  # Z35
 ]
 
 #Полные названия прогнозируемых показателей для окна результатов

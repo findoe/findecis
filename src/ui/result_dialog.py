@@ -177,15 +177,6 @@ class ResultDialog(QDialog):
         for recommendation in self.agent_report.recommendations:
             layout.addWidget(self._text_line(f"• {recommendation}"))
 
-        note = QLabel(
-            "Примечание: агент формирует интерпретацию по результатам нейросетевой модели."
-        )
-        note.setObjectName("MutedLabel")
-        note.setFont(QFont(FONT_FAMILY, 14))
-        note.setStyleSheet("font-size: 14px;")
-        note.setWordWrap(True)
-        layout.addWidget(note)
-
         return agent_card
 
     #Таблица регрессионных прогнозов
