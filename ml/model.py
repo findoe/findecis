@@ -34,6 +34,9 @@ from tensorflow.keras.layers import BatchNormalization, Dense, Dropout, Input
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.regularizers import l2
 
+# =========================
+# =       МОДЕЛЬ          =
+# =========================
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_PATH = PROJECT_ROOT / "data" / "data_processed.csv"
@@ -64,7 +67,6 @@ def set_seed(seed: int = RANDOM_STATE) -> None:
     random.seed(seed)
     np.random.seed(seed)
     tf.random.set_seed(seed)
-
 
 
 #Загрузка и проверка данных
@@ -226,8 +228,10 @@ def scale_features(
     return x_train_scaled, x_val_scaled, x_test_scaled, scaler
 
 
+# =========================
+# АРХИТЕКУТРА МОДЕЛИ
+# =========================
 
-#Архитектура модели
 def build_multitask_model(input_dim: int) -> Model:
     inputs = Input(shape=(input_dim,), name="financial_features")
 
@@ -310,6 +314,7 @@ def build_multitask_model(input_dim: int) -> Model:
 
 
 #Оценка качества
+
 #Расчет ROC-AUC
 def safe_roc_auc(y_true: np.ndarray, y_score: np.ndarray) -> float | None:
     if len(np.unique(y_true)) < 2:
@@ -428,8 +433,10 @@ def save_training_plots(
     plot_metric("regression_output_mae", "regression_mae.png", "Regression MAE")
 
 
+# =========================
+#     ОБУЧЕНИЕ МОДЕЛИ
+# =========================
 
-#Обучение
 def train_model(args: argparse.Namespace) -> None:
     set_seed(args.seed)
 

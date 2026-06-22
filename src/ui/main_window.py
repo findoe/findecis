@@ -53,6 +53,7 @@ from src.validation import (
 )
 
 
+
 NUMERIC_INPUT_MODE = "numeric"
 TEXT_INPUT_MODE = "text"
 
@@ -163,7 +164,7 @@ class FinancialAnalysisWindow(QMainWindow):
 
         parent_layout.addWidget(tabs, stretch=1)
 
-    #Компактный переключатель формата значений внутри сетки
+    #Переключатель формата значений внутри сетки
     def _create_input_mode_header(self) -> QWidget:
         header = QWidget()
         header.setObjectName("ModeHeader")
@@ -355,7 +356,7 @@ class FinancialAnalysisWindow(QMainWindow):
         label.setFont(QFont(FONT_FAMILY, 13, QFont.Weight.Bold))
         return label
 
-    #Смена светлой и темной темы
+    #Смена светлой и темной тем
     def change_theme(self) -> None:
         theme_name = self._require_theme_combo().currentData()
         set_current_theme(theme_name)

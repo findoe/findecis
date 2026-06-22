@@ -9,6 +9,7 @@ from keras.models import load_model
 from src.risk_probability import BankruptcyRiskEstimator
 
 
+
 #Сервис для работы с обученной нейросетевой моделью
 class FinancialModelService:
     #Загрузка модели Keras и сохраненного StandardScaler

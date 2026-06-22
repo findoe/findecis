@@ -6,7 +6,9 @@ from typing import Sequence
 
 from src.config import PREDICTION_FULL_LABELS
 
-
+# =========================
+#         АГЕНТ
+# =========================
 
 #Пороговые значения для интерпретации результата модели
 LOW_RISK_LIMIT = 0.30

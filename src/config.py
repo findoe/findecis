@@ -53,6 +53,7 @@ PREDICTION_LABELS = [
 
 #Веса резервной эвристики для расчета вероятности банкротства по 11 прогнозным показателям
 #Основной расчет выполняется через risk_calibrator.json; эти веса используются только если файл недоступен.
+# Поменять?
 BANKRUPTCY_RISK_WEIGHTS = [
     0.05,  # Reg
     0.12,  # Kredit
@@ -108,6 +109,7 @@ FIELD_LABELS = [
 ]
 
 #Возможные названия служебных столбцов в CSV-файле
+# Не нужно?
 INDUSTRY_COLUMN_CANDIDATES = ("Отрасль экономики", "Отрасль", "industry")
 INN_COLUMN_CANDIDATES = ("ИНН", "inn")
 YEAR_COLUMN_CANDIDATES = ("Год", "year")

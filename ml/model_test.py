@@ -12,6 +12,9 @@ if str(Path(__file__).resolve().parents[1]) not in sys.path:
 
 from src.risk_probability import BankruptcyRiskEstimator
 
+# =========================
+#       ТЕСТИРОВАНИЕ
+# =========================
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MODEL_PATH = PROJECT_ROOT / "artifacts" / "best_model.keras"
