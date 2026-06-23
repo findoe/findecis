@@ -3,7 +3,6 @@ venv/
 __pycache__/
 metadata.json
 metrics.json
-artifacts/metrics
 commands.txt
 *.pyc
 *.pyo
