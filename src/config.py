@@ -9,7 +9,6 @@ APP_TITLE = "Анализ финансового состояния предпр
 
 MODEL_PATH = PROJECT_ROOT / "artifacts" / "best_model.keras"
 SCALER_PATH = PROJECT_ROOT / "artifacts" / "scaler.pkl"
-RISK_CALIBRATOR_PATH = PROJECT_ROOT / "artifacts" / "risk_calibrator.json"
 DATA_PATH = PROJECT_ROOT / "data" / "data_processed.csv"
 DATA_DELIMITER = ";"
 
