@@ -435,7 +435,7 @@ def save_training_plots(
 
 # =========================
 #     ОБУЧЕНИЕ МОДЕЛИ
-# =========================
+# =======================
 
 def train_model(args: argparse.Namespace) -> None:
     set_seed(args.seed)

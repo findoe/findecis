@@ -7,6 +7,7 @@ import numpy as np
 from src.config import BANKRUPTCY_RISK_WEIGHTS
 
 
+
 RISK_CALIBRATOR = {
     "scaler_mean": [
         0.3907902058987201,

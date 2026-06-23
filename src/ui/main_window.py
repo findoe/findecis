@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import pandas as pd
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtGui import QDesktopServices, QFont
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -22,7 +22,6 @@ from PySide6.QtWidgets import (
 
 from src.config import (
     ALL_INDUSTRIES_VALUE,
-    APP_TITLE,
     CATEGORIES,
     DATA_PATH,
     ERROR_TITLE,
@@ -53,7 +52,6 @@ from src.validation import (
 )
 
 
-
 NUMERIC_INPUT_MODE = "numeric"
 TEXT_INPUT_MODE = "text"
 
@@ -66,11 +64,10 @@ VALUE_DISPLAY_MAP = {
 }
 
 VALUE_OPTIONS = tuple(VALUE_DISPLAY_MAP.keys())
+GITHUB_URL = "https://github.com/findoe/findecis"
 
 
-#Главное окно приложения
 class FinancialAnalysisWindow(QMainWindow):
-    #Инициализация репозитория, модели и элементов окна
     def __init__(self) -> None:
         super().__init__()
         self.repository = CompanyDataRepository(DATA_PATH)
@@ -84,32 +81,67 @@ class FinancialAnalysisWindow(QMainWindow):
         self.inn_entry: QLineEdit | None = None
         self.year_entry: QLineEdit | None = None
         self.industry_combo: QComboBox | None = None
-        self.status_label: QLabel | None = None
+        self.loaded_inn_label: QLabel | None = None
+        self.loaded_year_label: QLabel | None = None
+        self.loaded_industry_label: QLabel | None = None
         self.theme_combo: QComboBox | None = None
 
-        self.setWindowTitle(APP_TITLE)
+        self.setWindowTitle("Findecis")
         self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.setMinimumSize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT)
         self._build_ui()
 
-    #Сборка основной структуры интерфейса
     def _build_ui(self) -> None:
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
         main_layout = QHBoxLayout(central_widget)
-        main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.setSpacing(12)
+        main_layout.setContentsMargins(12, 12, 12, 12)
+        main_layout.setSpacing(14)
 
         left_layout = QVBoxLayout()
-        left_layout.setSpacing(14)
+        left_layout.setSpacing(12)
         main_layout.addLayout(left_layout, stretch=1)
 
+        left_layout.addWidget(self._build_header())
         self._build_tabs(left_layout)
         self._build_analyze_button(left_layout)
         self._build_search_panel(main_layout)
 
-    #Создание вкладок с 35 полями ввода
+    def _build_header(self) -> QFrame:
+        header = QFrame()
+        header.setObjectName("AppHeader")
+        header.setFixedHeight(72)
+
+        layout = QHBoxLayout(header)
+        layout.setContentsMargins(20, 10, 18, 10)
+        layout.setSpacing(12)
+
+        title_layout = QVBoxLayout()
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        title_layout.setSpacing(2)
+
+        title = QLabel("AI-агент")
+        title.setObjectName("HeaderTitle")
+        title.setFont(QFont(FONT_FAMILY, 22, QFont.Weight.Bold))
+        title_layout.addWidget(title)
+
+        subtitle = QLabel("Прогноз финансового состояния предприятия и вероятности банкротства")
+        subtitle.setObjectName("HeaderSubtitle")
+        subtitle.setFont(QFont(FONT_FAMILY, 12))
+        title_layout.addWidget(subtitle)
+
+        github_button = QPushButton("GitHub")
+        github_button.setObjectName("HeaderLinkButton")
+        github_button.setFont(QFont(FONT_FAMILY, 12, QFont.Weight.Bold))
+        github_button.setFixedSize(170, 38)
+        github_button.clicked.connect(self._open_github_repository)
+
+        layout.addLayout(title_layout, stretch=1)
+        layout.addWidget(github_button, alignment=Qt.AlignmentFlag.AlignVCenter)
+
+        return header
+
     def _build_tabs(self, parent_layout: QVBoxLayout) -> None:
         tabs = QTabWidget()
         label_index = 0
@@ -117,9 +149,9 @@ class FinancialAnalysisWindow(QMainWindow):
         for category, fields_count in CATEGORIES:
             tab = QWidget()
             tab_layout = QGridLayout(tab)
-            tab_layout.setContentsMargins(16, 10, 16, 14)
-            tab_layout.setHorizontalSpacing(14)
-            tab_layout.setVerticalSpacing(10)
+            tab_layout.setContentsMargins(20, 14, 20, 18)
+            tab_layout.setHorizontalSpacing(16)
+            tab_layout.setVerticalSpacing(8)
             tab_layout.setColumnStretch(0, 1)
             tab_layout.setColumnStretch(1, 0)
             tab_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -132,25 +164,29 @@ class FinancialAnalysisWindow(QMainWindow):
             )
 
             block_label = QLabel("Блок:")
-            block_label.setFont(QFont(FONT_FAMILY, 13, QFont.Weight.Bold))
+            block_label.setFont(QFont(FONT_FAMILY, 16, QFont.Weight.Bold))
+            block_label.setStyleSheet("font-size: 16px; font-weight: 800;")
             tab_layout.addWidget(block_label, 1, 0, alignment=Qt.AlignmentFlag.AlignLeft)
+            tab_layout.addWidget(self._create_gradient_strip(block_label), 2, 0, alignment=Qt.AlignmentFlag.AlignLeft)
 
             expressiveness_label = QLabel("Выраженность:")
-            expressiveness_label.setFont(QFont(FONT_FAMILY, 13, QFont.Weight.Bold))
+            expressiveness_label.setFont(QFont(FONT_FAMILY, 16, QFont.Weight.Bold))
+            expressiveness_label.setStyleSheet("font-size: 16px; font-weight: 800;")
             tab_layout.addWidget(expressiveness_label, 1, 1, alignment=Qt.AlignmentFlag.AlignLeft)
+            tab_layout.addWidget(self._create_gradient_strip(expressiveness_label), 2, 1, alignment=Qt.AlignmentFlag.AlignLeft)
 
-            field_row_height = max(58, min(88, 520 // max(fields_count, 1)))
+            field_row_height = max(54, min(78, 500 // max(fields_count, 1)))
 
             for row_index in range(fields_count):
-                grid_row = row_index + 2
+                grid_row = row_index + 3
                 tab_layout.setRowMinimumHeight(grid_row, field_row_height)
 
                 label = QLabel(f"{label_index + 1}. {FIELD_LABELS[label_index]}")
-                label.setFont(QFont(FONT_FAMILY, 15, QFont.Weight.Bold))
+                label.setFont(QFont(FONT_FAMILY, 14, QFont.Weight.Bold))
 
                 entry = QComboBox()
-                entry.setFixedWidth(150)
-                entry.setFont(QFont(FONT_FAMILY, 14))
+                entry.setFixedWidth(165)
+                entry.setFont(QFont(FONT_FAMILY, 13))
                 self._populate_feature_combo(entry)
                 entry.setCurrentIndex(-1)
 
@@ -164,11 +200,10 @@ class FinancialAnalysisWindow(QMainWindow):
 
         parent_layout.addWidget(tabs, stretch=1)
 
-    #Переключатель формата значений внутри сетки
     def _create_input_mode_header(self) -> QWidget:
         header = QWidget()
         header.setObjectName("ModeHeader")
-        header.setFixedWidth(150)
+        header.setFixedWidth(165)
 
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(0, 0, 0, 0)
@@ -180,7 +215,7 @@ class FinancialAnalysisWindow(QMainWindow):
 
         mode_switch = QFrame()
         mode_switch.setObjectName("ModeSwitch")
-        mode_switch.setFixedSize(108, 32)
+        mode_switch.setFixedSize(118, 34)
 
         mode_layout = QHBoxLayout(mode_switch)
         mode_layout.setContentsMargins(2, 2, 2, 2)
@@ -192,7 +227,7 @@ class FinancialAnalysisWindow(QMainWindow):
         for button in (numeric_button, text_button):
             button.setObjectName("SegmentButton")
             button.setCheckable(True)
-            button.setFixedHeight(28)
+            button.setFixedHeight(30)
             button.setFont(QFont(FONT_FAMILY, 12, QFont.Weight.Bold))
 
         numeric_button.setChecked(self.input_mode == NUMERIC_INPUT_MODE)
@@ -220,7 +255,16 @@ class FinancialAnalysisWindow(QMainWindow):
 
         return header
 
-    #Заполнение списка значениями в текущем формате
+    def _create_gradient_strip(self, label: QLabel) -> QFrame:
+        strip = QFrame()
+        width = max(24, label.fontMetrics().horizontalAdvance(label.text()))
+        strip.setFixedSize(width, 4)
+        strip.setStyleSheet(
+            "border: none; border-radius: 2px; "
+            "background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #7C3AED, stop:1 #22D3EE);"
+        )
+        return strip
+
     def _populate_feature_combo(self, combo: QComboBox) -> None:
         combo.clear()
 
@@ -230,7 +274,6 @@ class FinancialAnalysisWindow(QMainWindow):
             else:
                 combo.addItem(VALUE_DISPLAY_MAP[value], value)
 
-    #Смена формата выбора значений во всех выпадающих списках
     def _change_input_mode(self, mode: str) -> None:
         if mode == self.input_mode:
             return
@@ -238,21 +281,20 @@ class FinancialAnalysisWindow(QMainWindow):
         selected_values = [entry.currentData() for entry in self.entries]
         self.input_mode = mode
 
-        for numeric_button in self.numeric_mode_buttons:
-            numeric_button.blockSignals(True)
-            numeric_button.setChecked(mode == NUMERIC_INPUT_MODE)
-            numeric_button.blockSignals(False)
-
-        for text_button in self.text_mode_buttons:
-            text_button.blockSignals(True)
-            text_button.setChecked(mode == TEXT_INPUT_MODE)
-            text_button.blockSignals(False)
+        self._set_buttons_checked(self.numeric_mode_buttons, mode == NUMERIC_INPUT_MODE)
+        self._set_buttons_checked(self.text_mode_buttons, mode == TEXT_INPUT_MODE)
 
         for entry, value in zip(self.entries, selected_values):
             self._populate_feature_combo(entry)
             self._set_feature_combo_value(entry, value)
 
-    #Установка значения выпадающего списка по числовому эквиваленту
+    @staticmethod
+    def _set_buttons_checked(buttons: list[QPushButton], checked: bool) -> None:
+        for button in buttons:
+            button.blockSignals(True)
+            button.setChecked(checked)
+            button.blockSignals(False)
+
     @staticmethod
     def _set_feature_combo_value(combo: QComboBox, value: float | None) -> None:
         if value is None:
@@ -269,26 +311,24 @@ class FinancialAnalysisWindow(QMainWindow):
 
         combo.setCurrentIndex(-1)
 
-    #Кнопка запуска анализа
     def _build_analyze_button(self, parent_layout: QVBoxLayout) -> None:
         analyze_button = QPushButton("Выполнить анализ")
-        analyze_button.setFixedSize(205, 46)
+        analyze_button.setFixedSize(220, 46)
         analyze_button.setFont(QFont(FONT_FAMILY, 15, QFont.Weight.Bold))
         analyze_button.clicked.connect(self.predict)
         parent_layout.addWidget(analyze_button, alignment=Qt.AlignmentFlag.AlignHCenter)
 
-    #Кнопка панели поиска и настроек
     def _build_search_panel(self, parent_layout: QHBoxLayout) -> None:
         search_frame = QFrame()
         search_frame.setObjectName("SearchPanel")
         search_frame.setFixedWidth(SEARCH_PANEL_WIDTH)
 
         layout = QVBoxLayout(search_frame)
-        layout.setContentsMargins(18, 18, 18, 18)
-        layout.setSpacing(8)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(9)
 
         title = QLabel("Поиск предприятия")
-        title.setFont(QFont(FONT_FAMILY, 17, QFont.Weight.Bold))
+        title.setFont(QFont(FONT_FAMILY, 18, QFont.Weight.Bold))
         layout.addWidget(title)
 
         hint = QLabel("Загрузите данные или заполните показатели вручную.")
@@ -327,36 +367,56 @@ class FinancialAnalysisWindow(QMainWindow):
         self.industry_combo.setFixedWidth(SEARCH_CONTROL_WIDTH)
         layout.addWidget(self.industry_combo)
 
-        search_button = QPushButton("Найти")
-        search_button.clicked.connect(self.search)
-        layout.addWidget(search_button)
-
-        random_button = QPushButton("Случайно")
-        random_button.clicked.connect(self.random_company)
-        layout.addWidget(random_button)
-
-        clear_button = QPushButton("Очистить")
-        clear_button.setObjectName("SecondaryButton")
-        clear_button.clicked.connect(self.clear_form)
-        layout.addWidget(clear_button)
+        layout.addWidget(self._create_panel_button("Найти", self.search))
+        layout.addWidget(self._create_panel_button("Случайно", self.random_company))
+        layout.addWidget(self._create_panel_button("Очистить", self.clear_form, object_name="SecondaryButton"))
 
         layout.addStretch(1)
 
-        self.status_label = QLabel("Готово к работе!")
-        self.status_label.setObjectName("MutedLabel")
-        self.status_label.setWordWrap(True)
-        layout.addWidget(self.status_label)
+        status_card = QFrame()
+        status_card.setObjectName("StatusCard")
+        status_layout = QVBoxLayout(status_card)
+        status_layout.setContentsMargins(12, 12, 12, 12)
+        status_layout.setSpacing(6)
+
+        status_title = QLabel("Данные загружены:")
+        status_title.setFont(QFont(FONT_FAMILY, 15, QFont.Weight.Bold))
+        status_layout.addWidget(status_title)
+
+        self.loaded_inn_label = self._create_status_label("ИНН - ...")
+        self.loaded_year_label = self._create_status_label("Год - ...")
+        self.loaded_industry_label = self._create_status_label("Отрасль - ...")
+
+        for label in (self.loaded_inn_label, self.loaded_year_label, self.loaded_industry_label):
+            status_layout.addWidget(label)
+
+        layout.addWidget(status_card)
 
         parent_layout.addWidget(search_frame)
 
-    #Подпись для поля ввода
+    @staticmethod
+    def _create_panel_button(text: str, slot, object_name: str | None = None) -> QPushButton:
+        button = QPushButton(text)
+        if object_name:
+            button.setObjectName(object_name)
+        button.setFixedHeight(42)
+        button.clicked.connect(slot)
+        return button
+
+    @staticmethod
+    def _create_status_label(text: str) -> QLabel:
+        label = QLabel(text)
+        label.setObjectName("MutedLabel")
+        label.setFont(QFont(FONT_FAMILY, 13, QFont.Weight.DemiBold))
+        label.setWordWrap(True)
+        return label
+
     @staticmethod
     def _create_field_label(text: str) -> QLabel:
         label = QLabel(text)
         label.setFont(QFont(FONT_FAMILY, 13, QFont.Weight.Bold))
         return label
 
-    #Смена светлой и темной тем
     def change_theme(self) -> None:
         theme_name = self._require_theme_combo().currentData()
         set_current_theme(theme_name)
@@ -365,7 +425,6 @@ class FinancialAnalysisWindow(QMainWindow):
         if app is not None:
             app.setStyleSheet(build_stylesheet(theme_name))
 
-    #Сбор значений, запуск модели и открытие окна результата
     def predict(self) -> None:
         try:
             feature_values = self._collect_feature_values_from_entries()
@@ -383,8 +442,6 @@ class FinancialAnalysisWindow(QMainWindow):
         except Exception as error:
             self._show_error(str(error))
 
-
-    #Формирование исторических точек для PDF-отчета
     def _build_history_points(self) -> list[HistoryPoint]:
         inn = self._get_inn_value()
 
@@ -414,7 +471,6 @@ class FinancialAnalysisWindow(QMainWindow):
 
         return points
 
-    #Подготовка контекста анализа для отчета агента
     def _build_analysis_context(self) -> dict[str, str]:
         inn = self._get_inn_value()
         year = self._get_year_value()
@@ -431,7 +487,6 @@ class FinancialAnalysisWindow(QMainWindow):
 
         return context
 
-    #Поиск предприятия по ИНН и году
     def search(self) -> None:
         inn = self._get_inn_value()
         year = self._get_year_value()
@@ -450,12 +505,12 @@ class FinancialAnalysisWindow(QMainWindow):
             return
 
         self._fill_company_data(row)
-        self._set_status(
-            f"Данные загружены: ИНН {self.repository.get_inn(row)}, "
-            f"{self.repository.get_year(row)} год, {self.repository.get_industry(row)}."
+        self._set_loaded_data(
+            inn=self.repository.get_inn(row),
+            year=self.repository.get_year(row),
+            industry=self.repository.get_industry(row),
         )
 
-    #Выбор случайного предприятия с учетом выбранной отрасли
     def random_company(self) -> None:
         row = self.repository.get_random_by_industry(self._get_selected_industry())
 
@@ -464,12 +519,12 @@ class FinancialAnalysisWindow(QMainWindow):
             return
 
         self._fill_company_data(row)
-        self._set_status(
-            f"Случайно выбрано: ИНН {self.repository.get_inn(row)}, "
-            f"{self.repository.get_year(row)} год, {self.repository.get_industry(row)}."
+        self._set_loaded_data(
+            inn=self.repository.get_inn(row),
+            year=self.repository.get_year(row),
+            industry=self.repository.get_industry(row),
         )
 
-    #Очистка формы ввода
     def clear_form(self) -> None:
         for entry in self.entries:
             entry.setCurrentIndex(-1)
@@ -477,9 +532,8 @@ class FinancialAnalysisWindow(QMainWindow):
         self._require_inn_entry().clear()
         self._require_year_entry().clear()
         self._require_industry_combo().setCurrentText(ALL_INDUSTRIES_VALUE)
-        self._set_status("Форма очищена!")
+        self._set_loaded_data()
 
-    #Проверка и сбор 35 входных значений
     def _collect_feature_values_from_entries(self) -> list[float]:
         values = []
 
@@ -494,58 +548,55 @@ class FinancialAnalysisWindow(QMainWindow):
 
         return values
 
-    #Заполнение формы данными найденной компании
     def _fill_company_data(self, row: pd.Series) -> None:
         self._require_inn_entry().setText(self.repository.get_inn(row))
         self._require_year_entry().setText(self.repository.get_year(row))
         self._require_industry_combo().setCurrentText(self.repository.get_industry(row))
         self._fill_feature_entries(row)
 
-    #Заполнение полей x1-x35
     def _fill_feature_entries(self, row: pd.Series) -> None:
         for entry, value in zip(self.entries, self.repository.get_feature_values(row)):
             self._set_feature_combo_value(entry, value)
 
-    #Получение ИНН из поля поиска
     def _get_inn_value(self) -> str:
         return self._require_inn_entry().text().strip()
 
-    #Получение года из поля поиска
     def _get_year_value(self) -> str:
         return self._require_year_entry().text().strip()
 
-    #Получение выбранной отрасли
     def _get_selected_industry(self) -> str:
         return self._require_industry_combo().currentText()
 
-    #Вывод статуса в правой панели
-    def _set_status(self, text: str) -> None:
-        if self.status_label is not None:
-            self.status_label.setText(text)
+    def _set_loaded_data(self, inn: str = "...", year: str = "...", industry: str = "...") -> None:
+        if self.loaded_inn_label is not None:
+            self.loaded_inn_label.setText(f"ИНН - {inn}")
+        if self.loaded_year_label is not None:
+            self.loaded_year_label.setText(f"Год - {year}")
+        if self.loaded_industry_label is not None:
+            self.loaded_industry_label.setText(f"Отрасль - {industry}")
 
-    #Показ сообщения об ошибке
+    def _open_github_repository(self) -> None:
+        if not QDesktopServices.openUrl(QUrl(GITHUB_URL)):
+            self._show_error(f"Не удалось открыть ссылку: {GITHUB_URL}")
+
     def _show_error(self, text: str) -> None:
         QMessageBox.critical(self, ERROR_TITLE, text)
 
-    #Проверка, что поле ИНН создано
     def _require_inn_entry(self) -> QLineEdit:
         if self.inn_entry is None:
             raise RuntimeError("Поле ИНН не создано!")
         return self.inn_entry
 
-    #Проверка, что поле года создано
     def _require_year_entry(self) -> QLineEdit:
         if self.year_entry is None:
             raise RuntimeError("Поле года не создано!")
         return self.year_entry
 
-    #Проверка, что список отраслей создан
     def _require_industry_combo(self) -> QComboBox:
         if self.industry_combo is None:
             raise RuntimeError("Список отраслей не создан!")
         return self.industry_combo
 
-    #Проверка, что список тем создан
     def _require_theme_combo(self) -> QComboBox:
         if self.theme_combo is None:
             raise RuntimeError("Список тем не создан!")
